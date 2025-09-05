@@ -4,7 +4,8 @@ import {
   getAllUsers, 
   deleteUser, 
   getAllJobs, 
-  deleteJob 
+  deleteJob,
+  getAllApplications,
 } from "../controllers/adminController.js";
 
 const adminrouter = express.Router();
@@ -16,5 +17,8 @@ adminrouter.delete("/users/:userId", protect, adminOnly, deleteUser);
 // ✅ Admin - Manage Jobs
 adminrouter.get("/jobs", protect, adminOnly, getAllJobs);
 adminrouter.delete("/jobs/:jobId", protect, adminOnly, deleteJob);
+
+// ✅ Admin - Manage Applications
+adminrouter.get("/applications", protect, adminOnly, getAllApplications);
 
 export default adminrouter;

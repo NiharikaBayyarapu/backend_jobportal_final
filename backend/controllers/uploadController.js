@@ -1,41 +1,34 @@
-// controllers/uploadController.js
-import User from "../models/User.js";
-import cloudinary from "../config/cloudinary.js";
-import streamifier from "streamifier";
+import multer from "multer";
+import { GridFsStorage } from "multer-gridfs-storage";
+import dotenv from "dotenv";
 
-export const uploadResume = async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+dotenv.config();
 
-    // Cloudinaryకి stream ద్వారా upload చేయడం
-    const streamUpload = (fileBuffer) => {
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "resumes", resource_type: "raw" }, // raw = pdf/doc/docx
-          (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
-          }
-        );
-        streamifier.createReadStream(fileBuffer).pipe(stream);
-      });
+// ✅ Configure storage for GridFS
+const storage = new GridFsStorage({
+  url: process.env.MONGO_URI,
+  file: (req, file) => {
+    return {
+      bucketName: "resumes", // collection in MongoDB
+      filename: `${Date.now()}-${file.originalname}`, // ✅ backticks fixed
     };
+  },
+});
 
-    const result = await streamUpload(req.file.buffer);
+const upload = multer({ storage });
 
-    // User DBలో resume URL update చేయడం
-    const user = await User.findByIdAndUpdate(
-      req.user.id, // protect middleware నుండి వస్తుంది
-      { resume: result.secure_url },
-      { new: true }
-    );
+// ✅ Controller
+export const uploadResume = [
+  upload.single("resume"), // expects field name "resume"
+  (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
     res.json({
       message: "Resume uploaded successfully",
-      resume: user.resume,
-    });
-  } catch (err) {
-    console.error("Upload Error:", err);
-    res.status(500).json({ message: "Server Error", error: err.message });
-  }
-};
+      fileId: req.file.id,
+      filename: req.file.filename,
+    }); // ✅ properly closed
+  },
+];

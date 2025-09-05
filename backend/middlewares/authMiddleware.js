@@ -25,14 +25,15 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ success: false, message: "User not found" });
     }
 
-    req.user = user; // ✅ Full user object with role, name, email
+    req.user = user; //  Full user object with role, name, email
     next();
   } catch (err) {
+    console.log(err)
     return res.status(401).json({ success: false, message: "Token failed or expired" });
   }
 };
 
-// ✅ Role-specific Middlewares (can still use authorizeRoles)
+//  Role-specific Middlewares (can still use authorizeRoles)
 export const adminOnly = (req, res, next) => {
   if (req.user?.role === "admin") {
     return next();

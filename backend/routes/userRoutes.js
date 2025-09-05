@@ -5,7 +5,7 @@ import { getUserApplications } from "../controllers/jobController.js";
 
 const userrouter = express.Router();
 
-// Task 33: View all jobs a specific user has applied to
+// View all jobs a specific user has applied to
 userrouter.get(
   "/:id/applications",
   protect,

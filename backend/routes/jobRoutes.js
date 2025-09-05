@@ -14,11 +14,10 @@ import authorizeRoles from '../middlewares/roleMiddleware.js';
 
 const jobrouter = express.Router();
 
-// -------------------- PUBLIC ROUTES -------------------- //
 jobrouter.get('/', getJobs);                // Get all jobs
 jobrouter.get('/:id', getJobById);          // Get job by ID
 
-// -------------------- JOBSEEKER / ADMIN -------------------- //
+//JOBSEEKER / ADMIN //
 jobrouter.post(
   '/:id/apply',
   protect,
@@ -26,7 +25,7 @@ jobrouter.post(
   applyToJob
 );
 
-// -------------------- RECRUITER / ADMIN -------------------- //
+//RECRUITER / ADMIN//
 jobrouter.get(
   '/:id/applicants',
   protect,

@@ -2,9 +2,7 @@
 import Job from '../models/Job.js';
 
 
-// @desc    Create a new job
-// @route   POST /api/jobs
-// @access  Private (Recruiter/Admin)
+
 export const createJob = async (req, res) => {
   try {
     const { title, description, location, type, experience } = req.body;
@@ -54,9 +52,7 @@ export const getJobs = async (req, res) => {
   }
 };
 
-// @desc    Get single job by ID
-// @route   GET /api/jobs/:id
-// @access  Public
+
 export const getJobById = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -74,9 +70,7 @@ export const getJobById = async (req, res) => {
   }
 };
 
-// @desc    Update a job
-// @route   PUT /api/jobs/:id
-// @access  Private (Recruiter/Admin)
+
 export const updateJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -100,9 +94,7 @@ export const updateJob = async (req, res) => {
   }
 };
 
-// @desc    Delete a job
-// @route   DELETE /api/jobs/:id
-// @access  Private (Recruiter/Admin)
+
 export const deleteJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -122,9 +114,7 @@ export const deleteJob = async (req, res) => {
   }
 };
 
-// @desc    Apply to a job
-// @route   POST /api/jobs/:id/apply
-// @access  Private (Jobseeker/Admin)
+
 export const applyToJob = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
@@ -153,9 +143,7 @@ export const applyToJob = async (req, res) => {
   }
 };
 
-// @desc    Get applicants for a job
-// @route   GET /api/jobs/:id/applicants
-// @access  Private (Recruiter/Admin)
+
 export const getJobApplicants = async (req, res) => {
   try {
     const job = await Job.findById(req.params.id);
