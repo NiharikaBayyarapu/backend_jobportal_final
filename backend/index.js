@@ -35,8 +35,7 @@ const corsOptions = {
 };
 
 // Apply middleware
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Handle preflight
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
