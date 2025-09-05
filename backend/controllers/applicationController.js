@@ -1,37 +1,42 @@
-
+// backend/controllers/applicationController.js
 import mongoose from "mongoose";
 import Application from "../models/Application.js";
 import Job from "../models/Job.js";
-import fs from 'fs'
+import User from "../models/User.js";
 
-// Create application with GridFS resume (uploaded via multer-gridfs-storage)
+// Create application with GridFS resume
 export const createApplication = async (req, res) => {
   try {
     const userId = req.user?.userId || req.user?._id || req.user?.id;
     const { jobId, coverLetter } = req.body;
-    let resume = req.file;
 
-    if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
-    if (!jobId) return res.status(400).json({ success: false, message: "jobId is required" });
+    if (!userId)
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    if (!jobId)
+      return res
+        .status(400)
+        .json({ success: false, message: "jobId is required" });
 
     const job = await Job.findById(jobId);
-    if (!job) return res.status(404).json({ success: false, message: "Job not found" });
+    if (!job)
+      return res.status(404).json({ success: false, message: "Job not found" });
 
     // Build application payload
     const payload = {
       job: job._id,
-      user: new mongoose.Types.ObjectId(userId),  
+      user: new mongoose.Types.ObjectId(userId), // ✅ consistent with model
       coverLetter: coverLetter || "",
     };
 
     if (req.file) {
       payload.resumeFilename = req.file.filename;
       payload.resumeContentType = req.file.mimetype;
-      // Multer-gridfs-storage exposes file id at req.file.id
       payload.resumeFileId = req.file.id || req.file.fileId || req.file._id;
-      payload.resume={data:resume.buffer};
+      payload.resume = { data: req.file.buffer };
     } else {
-      return res.status(400).json({ success: false, message: "Resume file (field 'resume') is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Resume file is required" });
     }
 
     const application = await Application.create(payload);
@@ -42,14 +47,14 @@ export const createApplication = async (req, res) => {
   }
 };
 
+// Get logged-in user's applications
 export const getMyApplications = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
-    if (!userId) {
+    if (!userId)
       return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
 
-    const applications = await Application.find({ applicant: userId })
+    const applications = await Application.find({ user: userId }) // ✅ use user
       .populate("job", "title company salary location");
 
     res.json({ success: true, applications });
@@ -57,24 +62,29 @@ export const getMyApplications = async (req, res) => {
     console.error("getMyApplications error:", err);
     res
       .status(500)
-      .json({ success: false, message: "Error fetching applications", error: err.message });
+      .json({ success: false, message: "Error fetching applications" });
   }
 };
 
-// ✅ Stream resume from GridFS
+// Stream resume from GridFS
 export const downloadResume = async (req, res) => {
   try {
     const { id } = req.params; // application id
     const app = await Application.findById(id);
     if (!app || !app.resumeFileId) {
-      return res.status(404).json({ success: false, message: "Resume not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Resume not found" });
     }
 
     const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
       bucketName: "resumes",
     });
 
-    res.set("Content-Type", app.resumeContentType || "application/octet-stream");
+    res.set(
+      "Content-Type",
+      app.resumeContentType || "application/octet-stream"
+    );
     res.set(
       "Content-Disposition",
       `attachment; filename="${app.resumeFilename || "resume"}"`
@@ -93,82 +103,89 @@ export const downloadResume = async (req, res) => {
   }
 };
 
-// ✅ Recruiter/Admin: get applications for a specific job
+// Recruiter/Admin: get applications for a job
 export const getApplicationsForJob = async (req, res) => {
   try {
     const { jobId } = req.params;
 
-    // Ensure job exists
     const job = await Job.findById(jobId);
-    if (!job) return res.status(404).json({ success: false, message: "Job not found" });
+    if (!job)
+      return res.status(404).json({ success: false, message: "Job not found" });
 
-    // If recruiter, ensure they own the job
-    if (req.user.role === "recruiter" && String(job.postedBy) !== String(req.user._id)) {
+
+    const user = await User.findById(req.user._id);
+
+    if (job.postedBy.toString() !== user.email.toString()) {
       return res
         .status(403)
         .json({ success: false, message: "You do not own this job" });
     }
 
+    // if (req.user.role === "recruiter" && String(job.postedBy) !== String(req.user._id)) {
+    //   return res.status(403).json({ success: false, message: "You do not own this job" });
+    // }
+
     const applications = await Application.find({ job: jobId })
-      .populate("applicant", "name email")
+      .populate("user", "name email") // ✅ use user
       .populate("job", "title location company");
 
     res.json({ success: true, count: applications.length, applications });
   } catch (err) {
-    console.error("getApplicationsForJob error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error fetching applications",
-      error: err.message,
-    });
+    console.log("getApplicationsForJob error:", err);
+    res.status(500).json({ success: false, message: err });
   }
 };
 
-// ✅ Admin: get all applications
+// Admin: get all applications
 export const getAllApplications = async (req, res) => {
   try {
     const applications = await Application.find()
-      .populate("applicant", "name email role")
+      .populate("user", "name email role") // ✅ use user
       .populate("job", "title location company");
 
     res.json({ success: true, count: applications.length, applications });
   } catch (err) {
-    console.error("getAllApplications error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error fetching applications",
-      error: err.message,
-    });
+    console.log("getAllApplications error:", err);
+    res
+      .status(500)
+      .json({ success: false, message: "Server error fetching applications" });
   }
 };
 
-// ✅ Recruiter/Admin: update application status
+// Recruiter/Admin: update application status
 export const updateApplicationStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!["pending", "accepted", "rejected"].includes((status || "").toLowerCase())) {
-      return res.status(400).json({ success: false, message: "Invalid status" });
+
+    if (!["accepted", "rejected"].includes(status)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status" });
     }
 
-    const application = await Application.findById(id).populate("job", "postedBy title");
-    if (!application) {
-      return res.status(404).json({ success: false, message: "Application not found" });
-    }
+    const application = await Application.findById(id).populate(
+      "job",
+      "postedBy title"
+    );
+    if (!application)
+      return res
+        .status(404)
+        .json({ success: false, message: "Application not found" });
+    
+    const user = await User.findById(req.user._id);
 
-    // If recruiter, ensure they own the job
     if (
       req.user.role === "recruiter" &&
-      String(application.job.postedBy) !== String(req.user._id)
+      String(application.job.postedBy) !== String(user.email)
     ) {
-      return res.status(403).json({
-        success: false,
-        message: "You do not own this job's applications",
-      });
+      return res
+        .status(403)
+        .json({ success: false, message: "Not authorized" });
     }
 
-    application.status = status.toLowerCase();
+    application.status = status;
     await application.save();
 
     res.json({
@@ -178,10 +195,6 @@ export const updateApplicationStatus = async (req, res) => {
     });
   } catch (err) {
     console.error("updateApplicationStatus error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Error updating status",
-      error: err.message,
-    });
+    res.status(500).json({ success: false, message: "Error updating status" });
   }
 };

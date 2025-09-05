@@ -13,7 +13,6 @@ export const protect = async (req, res, next) => {
   if (!token) {
     return res.status(401).json({ success: false, message: "No token, not authorized" });
   }
-  console.log("Token:", token);
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -42,14 +41,14 @@ export const adminOnly = (req, res, next) => {
 };
 
 export const recruiterOnly = (req, res, next) => {
-  if (req.user?.role === "recruiter") {
+  if (req.user.role === "recruiter") {
     return next();
   }
   return res.status(403).json({ success: false, message: "Access denied: Recruiters only" });
 };
 
 export const jobseekerOnly = (req, res, next) => {
-  if (req.user?.role === "jobseeker") {
+  if (req.user.role === "jobseeker") {
     return next();
   }
   return res.status(403).json({ success: false, message: "Access denied: Jobseekers only" });
